@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct ContentView: View {
     @State private var showFileImporter = false
@@ -10,6 +9,7 @@ struct ContentView: View {
     @State private var isMerging = false
     @State private var mergingProgress: Double = 0.0
     @State private var currentStep: String = ""
+    @State private var showFFmpegAlert = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -18,7 +18,11 @@ struct ContentView: View {
                 .fontWeight(.bold)
 
             Button("Import Videos") {
-                showFileImporter = true
+                if checkFFmpegInstallation() {
+                    showFileImporter = true
+                } else {
+                    showFFmpegAlert = true
+                }
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
@@ -117,9 +121,15 @@ struct ContentView: View {
             switch result {
             case .success(let url):
                 exportMessage = "✅ Merged video saved to: \(url.path)"
+                importedFileURLs.removeAll() // Clear the list after successful export
             case .failure(let error):
                 exportMessage = "❌ Save failed: \(error.localizedDescription)"
             }
+        }
+        .alert("FFmpeg Not Found", isPresented: $showFFmpegAlert) {
+            Button("OK") { }
+        } message: {
+            Text("FFmpeg is required to merge videos.\n\nTo install FFmpeg:\n1. Install Homebrew (https://brew.sh/) if not installed\n2. Install FFmpeg (brew install ffmpeg)\n3. Restart this app")
         }
     }
 
@@ -299,6 +309,7 @@ struct ContentView: View {
             let outputURL = tempDirectory.appendingPathComponent("normalized_\(index).mp4")
             let progressURL = tempDirectory.appendingPathComponent("normalize_progress_\(index).txt")
             let videoDuration = videoDurations[index]
+            let currentProcessedDuration = processedDuration // Capture current value
 
             DispatchQueue.main.async {
                 self.currentStep = "Normalizing video \(index + 1) of \(totalVideos): \(url.lastPathComponent)"
@@ -328,7 +339,7 @@ struct ContentView: View {
                 self.updateNormalizationProgress(
                     from: progressURL,
                     videoDuration: videoDuration,
-                    processedDuration: processedDuration,
+                    processedDuration: currentProcessedDuration, // Use captured value
                     totalDuration: totalDuration,
                     videoIndex: index + 1,
                     totalVideos: totalVideos
@@ -343,7 +354,7 @@ struct ContentView: View {
 
                 if process.terminationStatus == 0 {
                     normalizedURLs.append(outputURL)
-                    processedDuration += videoDuration
+                    processedDuration += videoDuration // Update after timer is done
 
                     // Update progress after completing this video
                     DispatchQueue.main.async {
@@ -466,5 +477,13 @@ struct ContentView: View {
         }
 
         return normalizedURLs
+    }
+
+    private func checkFFmpegInstallation() -> Bool {
+        let ffmpegPath = "/opt/homebrew/bin/ffmpeg"
+        let ffprobePath = "/opt/homebrew/bin/ffprobe"
+
+        return FileManager.default.fileExists(atPath: ffmpegPath) &&
+               FileManager.default.fileExists(atPath: ffprobePath)
     }
 }
