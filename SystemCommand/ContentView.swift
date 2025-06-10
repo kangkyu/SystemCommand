@@ -74,12 +74,12 @@ struct ContentView: View {
             }
 
             if let exportMessage = exportMessage {
-                 Text(exportMessage)
-                     .foregroundColor(.green)
-                     .padding()
-                     .background(Color.green.opacity(0.1))
-                     .cornerRadius(8)
-             }
+                Text(exportMessage)
+                    .foregroundColor(.green)
+                    .padding()
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(8)
+            }
         }
         .padding()
         .fileImporter(
@@ -103,7 +103,7 @@ struct ContentView: View {
             onCompletion: { result in
                 switch result {
                 case .success(let url):
-                    exportMessage = "✅ Exported successfully to: \(url.lastPathComponent)"
+                    exportMessage = "✅ Exported successfully to: \(url.path)"
                     importedFileURLs.removeAll()
                 case .failure(let error):
                     exportMessage = "❌ Export failed: \(error.localizedDescription)"
